@@ -6,7 +6,11 @@ https://github.com/airspy/airspyhf.git
 
 Project webpage main.lv
 
+
+
 ## Sourcecode
+
+git clone https://git.main.lv/cgit/pyairspyhf.git
 
 ## Install
 

@@ -7,13 +7,14 @@ from ctypes.util import find_library
 def load_libairspyhf():
     if sys.platform == "linux" and 'LD_LIBRARY_PATH' in os.environ.keys():
         ld_library_paths = [local_path for local_path in os.environ['LD_LIBRARY_PATH'].split(':') if local_path.strip()]
-        ld_library_paths = ["/home/fam/prog/python/pyairspyhf/airspyhf/libairspyhf/src"]
+        if "AIRSPYHF_TEST_PATH" in os.environ:
+            ld_library_paths = [os.environ["AIRSPYHF_TEST_PATH"]]
         driver_files = [local_path + '/libairspyhf.so' for local_path in ld_library_paths]
     else:
         driver_files = []
     driver_files += ['libairspyhf.so']
-    #driver_files += ['airspyhf.dll', 'libairspyhf.so', 'libairspyhf.dylib']
-    #driver_files += ['..//airspyhf.dll', '..//libairspyhf.so']
+    driver_files += ['airspyhf.dll', 'libairspyhf.so', 'libairspyhf.dylib']
+    driver_files += ['..//airspyhf.dll', '..//libairspyhf.so']
     driver_files += [lambda : find_library('airspyhf'), lambda : find_library('libairspyhf')]
     dll = None
 
@@ -66,6 +67,7 @@ airspyhf_transfer_t_p = POINTER(airspyhf_transfer_t)
 #typedef int (*airspyhf_sample_block_cb_fn) (airspyhf_transfer_t* transfer_fn);
 #airspyhf_sample_block_cb_fn = CFUNCTYPE(c_int, POINTER(airspyhf_transfer_t))
 airspyhf_sample_block_cb_fn = PYFUNCTYPE(c_int, POINTER(airspyhf_transfer_t))
+
 #void ADDCALL airspyhf_lib_version(airspyhf_lib_version_t* lib_version);
 f = libairspyhf.airspyhf_lib_version
 f.restype, f.argtypes = None, [POINTER(airspyhf_lib_version_t)]
@@ -187,14 +189,5 @@ f.restype, f.argtypes = c_int, [airspyhf_device_t_p, c_uint8]
 f = libairspyhf.airspyhf_set_hf_lna
 f.restype, f.argtypes = c_int, [airspyhf_device_t_p, c_uint8]
 
-f = libairspyhf.py_test
-f.restype, f.argtypes = None, []
 
-f = libairspyhf.py_cb_wrapper
-f.restype, f.argtypes = c_int, [airspyhf_device_t_p]
-
-f = libairspyhf.py_test_cb
-f.restype, f.argtypes = c_int, [airspyhf_sample_block_cb_fn]
-
-
-__all__ = ["libairspyhf", "airspyhf_lib_version_t", "airspyhf_device_t_p", "airspyhf_sample_block_cb_fn"]
+__all__ = ["libairspyhf", "airspyhf_lib_version_t", "airspyhf_device_t_p", "airspyhf_sample_block_cb_fn", "airspyhf_complex_float_t_p", "airspyhf_transfer_t_p"]

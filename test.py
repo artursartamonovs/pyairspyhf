@@ -1,5 +1,5 @@
 import os
-import airspyhf
+from airspyhf import *
 from ctypes import *
 import time
 import sys
@@ -8,26 +8,24 @@ import struct
 
 print("Check airspyHF version")
 
-p = airspyhf.airspyhf_lib_version_t()
-print(airspyhf.libairspyhf.airspyhf_lib_version(byref(p)))
+p = airspyhf_lib_version_t()
+print(libairspyhf.airspyhf_lib_version(byref(p)))
 print(p.major_version)
 print(p.minor_version)
 print(p.revision)
 
 print("Get list of devices if there is any")
-ndev = airspyhf.libairspyhf.airspyhf_list_devices(None,0)
+ndev = libairspyhf.airspyhf_list_devices(None,0)
 print("Found %d devices"%(ndev))
 
 for devi in range(0,ndev):
     serial = c_uint64(0)
-    airspyhf.libairspyhf.airspyhf_list_devices(byref(serial),devi+1)
+    libairspyhf.airspyhf_list_devices(byref(serial),devi+1)
     print("Device %d: Serial number %s"%(int(devi),hex(serial.value) ))
 
 print("try to open device")
-#device = POINTER(c_void_p)
-#device_p = device()
-dev_p = airspyhf.airspyhf_device_t_p(None)
-ret = airspyhf.libairspyhf.airspyhf_open_sn(dev_p,0x3b52ab5dada12535)
+dev_p = airspyhf_device_t_p(None)
+ret = libairspyhf.airspyhf_open_sn(dev_p,0x3b52ab5dada12535)
 print("open_sn: Returned %d"%(ret))
 if (ret != 0):
     print("airspyhf_open_sn returned != 0, error")
@@ -36,51 +34,31 @@ if (ret != 0):
 print("List sample rates")
 nsrates = c_uint32(0)
 
-ret = airspyhf.libairspyhf.airspyhf_get_samplerates(dev_p,byref(nsrates),c_uint32(0))
+ret = libairspyhf.airspyhf_get_samplerates(dev_p,byref(nsrates),c_uint32(0))
 print("ret %d"%ret)
 print("sample rates %d"% nsrates.value)
 
 supportet_samplerates = (c_uint32*4)(0)
-ret = airspyhf.libairspyhf.airspyhf_get_samplerates(dev_p,supportet_samplerates,nsrates)
+ret = libairspyhf.airspyhf_get_samplerates(dev_p,supportet_samplerates,nsrates)
 print("ret %d"%ret)
 for i in range(0,nsrates.value):
     print("Sample rates %d"% supportet_samplerates[i])
 
 #try to get some samples
-ret = airspyhf.libairspyhf.airspyhf_set_samplerate(dev_p, supportet_samplerates[3])
+ret = libairspyhf.airspyhf_set_samplerate(dev_p, supportet_samplerates[3])
 print(f"airspyhf_set_samplerate ret={ret}")
 
-ret = airspyhf.libairspyhf.airspyhf_set_hf_agc(dev_p, 1)
+ret = libairspyhf.airspyhf_set_hf_agc(dev_p, 1)
 print(f"airspyhf_set_hf_agc ret={ret}")
 
-ret = airspyhf.libairspyhf.airspyhf_set_hf_agc_threshold(dev_p, 0)
+ret = libairspyhf.airspyhf_set_hf_agc_threshold(dev_p, 0)
 print(f"airspyhf_set_hf_agc_threshold ret={ret}")
-
-
-class CBthread:
-    def __init__(self,dev_p):
-        self.dev_p = dev_p
-        self.read_samples_cb = None
-
-    def read_samples(self, transfer):
-        print("we here")
-        return 0
-
-    def start(self):
-        self.read_samples_cb = airspyhf.airspyhf_sample_block_cb_fn(self.read_samples)
-        ret = airspyhf.libairspyhf.airspyhf_start(self.dev_p, self.read_samples_cb, None)
-        print(f"airspyhf_start ret={ret}")
-
-    def wait(self):
-        print("wait called")
 
 sample_count = 0
 wave_file = wave.open("record.wav","w")
 wave_file.setnchannels(2)
 wave_file.setsampwidth(4)
 wave_file.setframerate(supportet_samplerates[1])
-#@CFUNCTYPE(c_int, airspyhf.airspyhf_transfer_t_p)
-#@PYFUNCTYPE(c_int, airspyhf.airspyhf_transfer_t_p)
 def read_samples(transfer):
     global sample_count
     global wave_file
@@ -101,50 +79,42 @@ def read_samples(transfer):
     return 0
 
 
-#th = CBthread(dev_p)
-#th.start()
-
-read_samples_cb = airspyhf.airspyhf_sample_block_cb_fn(read_samples)
-
-print(read_samples)
-print(read_samples_cb)
+read_samples_cb = airspyhf_sample_block_cb_fn(read_samples)
 
 
-ret = airspyhf.libairspyhf.airspyhf_start(dev_p, airspyhf.airspyhf_sample_block_cb_fn(read_samples), None)
+ret = libairspyhf.airspyhf_start(dev_p, airspyhf_sample_block_cb_fn(read_samples), None)
 print(f"airspyhf_start ret={ret}")
 
 #ret = airspyhf.libairspyhf.py_cb_wrapper(dev_p)
 #print(f"airspyhf_start ret={ret}")
 
 
-ret = airspyhf.libairspyhf.airspyhf_set_freq(dev_p, 3865000)
+ret = libairspyhf.airspyhf_set_freq(dev_p, 3865000)
 print(f"airspyhf_set_freq ret={ret}")
 
 count = 0
 try:
-    while (airspyhf.libairspyhf.airspyhf_is_streaming(dev_p)) and (count < 3):
+    while (libairspyhf.airspyhf_is_streaming(dev_p)) and (count < 3):
         print("Main loop")
         time.sleep(1)
         count += 1
 except:
     print("Error in main loop")
 
-ret = airspyhf.libairspyhf.airspyhf_stop(dev_p)
+ret = libairspyhf.airspyhf_stop(dev_p)
 print(f"airspyhf_stop ret={ret}")
 
 #Not close for now
-ret = airspyhf.libairspyhf.close(dev_p)
+ret = libairspyhf.close(dev_p)
 print("closed: Returned %d"%(ret))
 
 print(f"Total samples received {sample_count}")
 
-airspyhf.libairspyhf.py_test()
+libairspyhf.py_test()
 
-airspyhf.libairspyhf.py_test_cb(read_samples_cb)
+libairspyhf.py_test_cb(read_samples_cb)
 
 wave_file.close()
 
 print("All is ok")
-
-#th.wait()
 
