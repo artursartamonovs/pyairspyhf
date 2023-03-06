@@ -14,8 +14,6 @@ parser.add_argument("--outputfile")
 parser.add_argument("--serial")
 args = parser.parse_args()
 
-
-
 print("Check airspyHF version")
 
 p = airspyhf_lib_version_t()
@@ -25,6 +23,8 @@ print(f"libairspyhf version {p.major_version}.{p.minor_version}.{p.revision}")
 print("Get list of devices if there is any")
 ndev = libairspyhf.airspyhf_list_devices(None,0)
 print("Found %d devices"%(ndev))
+if ndev < 1:
+    sys.exit(0)
 
 for devi in range(0,ndev):
     serial = c_uint64(0)
@@ -33,7 +33,12 @@ for devi in range(0,ndev):
 
 print("try to open device")
 dev_p = airspyhf_device_t_p(None)
-ret = libairspyhf.airspyhf_open_sn(dev_p,0x3b52ab5dada12535)
+if args.serial != None:
+    ret = libairspyhf.airspyhf_open_sn(dev_p, args.serial)
+else:
+    serial = c_uint64(0)
+    libairspyhf.airspyhf_list_devices(byref(serial), 1)
+    ret = libairspyhf.airspyhf_open_sn(dev_p, f"{hex(serial.value)}")
 print("open_sn: Returned %d"%(ret))
 if (ret != 0):
     print("airspyhf_open_sn returned != 0, error")
