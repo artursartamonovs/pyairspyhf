@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import os
 from airspyhf import *
 from ctypes import *
@@ -109,10 +110,6 @@ ret = libairspyhf.close(dev_p)
 print("closed: Returned %d"%(ret))
 
 print(f"Total samples received {sample_count}")
-
-libairspyhf.py_test()
-
-libairspyhf.py_test_cb(read_samples_cb)
 
 wave_file.close()
 

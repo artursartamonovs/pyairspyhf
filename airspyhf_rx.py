@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import os
 from airspyhf import *
 from ctypes import *
@@ -38,7 +39,8 @@ if args.serial != None:
 else:
     serial = c_uint64(0)
     libairspyhf.airspyhf_list_devices(byref(serial), 1)
-    ret = libairspyhf.airspyhf_open_sn(dev_p, f"{hex(serial.value)}")
+    print(hex(serial.value))
+    ret = libairspyhf.airspyhf_open_sn(dev_p, int(hex(serial.value),16))
 print("open_sn: Returned %d"%(ret))
 if (ret != 0):
     print("airspyhf_open_sn returned != 0, error")
@@ -116,16 +118,12 @@ except:
 
 ret = libairspyhf.airspyhf_stop(dev_p)
 print(f"airspyhf_stop ret={ret}")
-
+time.sleep(1)
 #Not close for now
 ret = libairspyhf.close(dev_p)
 print("closed: Returned %d"%(ret))
 
 print(f"Total samples received {sample_count}")
-
-libairspyhf.py_test()
-
-libairspyhf.py_test_cb(read_samples_cb)
 
 wave_file.close()
 
