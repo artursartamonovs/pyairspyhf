@@ -10,7 +10,9 @@ http://git.main.lv/cgit.cgi/pyairspyhf.git
 
 # Source code
 
+```
 git clone https://git.main.lv/cgit/pyairspyhf.git
+```
 
 # API
 ## libairspyhf

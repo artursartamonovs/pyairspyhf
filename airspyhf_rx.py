@@ -31,10 +31,10 @@ for devi in range(0,ndev):
     libairspyhf.airspyhf_list_devices(byref(serial),devi+1)
     print("Device %d: Serial number %s"%(int(devi),hex(serial.value) ))
 
-print("try to open device")
+print("Try to open device")
 dev_p = airspyhf_device_t_p(None)
 if args.serial != None:
-    ret = libairspyhf.airspyhf_open_sn(dev_p, args.serial)
+    ret = libairspyhf.airspyhf_open_sn(dev_p, int(args.serial,16))
 else:
     serial = c_uint64(0)
     libairspyhf.airspyhf_list_devices(byref(serial), 1)
@@ -122,10 +122,6 @@ ret = libairspyhf.close(dev_p)
 print("closed: Returned %d"%(ret))
 
 print(f"Total samples received {sample_count}")
-
-libairspyhf.py_test()
-
-libairspyhf.py_test_cb(read_samples_cb)
 
 wave_file.close()
 
