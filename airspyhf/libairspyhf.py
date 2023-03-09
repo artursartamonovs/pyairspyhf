@@ -23,7 +23,7 @@ def load_libairspyhf():
             driver = driver()
         if driver is None:
             continue
-        print(driver)
+        #print("Search for driver named %s"%(driver))
         try:
             dll = CDLL(driver)
             break

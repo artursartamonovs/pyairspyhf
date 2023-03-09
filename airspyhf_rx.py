@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import os
 from airspyhf import *
 from ctypes import *
@@ -8,10 +9,10 @@ import struct
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--frequency")
-parser.add_argument("--samplerate")
-parser.add_argument("--outputfile")
-parser.add_argument("--serial")
+parser.add_argument("-f","--frequency")
+parser.add_argument("-s","--samplerate")
+parser.add_argument("-o","--outputfile")
+parser.add_argument("-sn","--serial")
 args = parser.parse_args()
 
 print("Check airspyHF version")
@@ -38,7 +39,9 @@ if args.serial != None:
 else:
     serial = c_uint64(0)
     libairspyhf.airspyhf_list_devices(byref(serial), 1)
-    ret = libairspyhf.airspyhf_open_sn(dev_p, f"{hex(serial.value)}")
+    print(hex(serial.value))
+    print(type(serial.value))
+    ret = libairspyhf.airspyhf_open_sn(dev_p, serial.value)
 print("open_sn: Returned %d"%(ret))
 if (ret != 0):
     print("airspyhf_open_sn returned != 0, error")
@@ -51,14 +54,21 @@ ret = libairspyhf.airspyhf_get_samplerates(dev_p,byref(nsrates),c_uint32(0))
 print("ret %d"%ret)
 print("sample rates %d"% nsrates.value)
 
-supportet_samplerates = (c_uint32*4)(0)
-ret = libairspyhf.airspyhf_get_samplerates(dev_p,supportet_samplerates,nsrates)
+supported_samplerates = (c_uint32*4)(0)
+ret = libairspyhf.airspyhf_get_samplerates(dev_p,supported_samplerates,nsrates)
 print("ret %d"%ret)
+print("Sample rate list:")
 for i in range(0,nsrates.value):
-    print("Sample rates %d"% supportet_samplerates[i])
+    print("    %d s/sec"% supported_samplerates[i])
 
 #try to get some samples
-ret = libairspyhf.airspyhf_set_samplerate(dev_p, supportet_samplerates[3])
+supported_samplerates = list(supported_samplerates)
+if int(args.samplerate) in supported_samplerates:
+    print("Setting sample rate to %s"%(args.samplerate))
+    ret = libairspyhf.airspyhf_set_samplerate(dev_p, int(args.samplerate))
+else:
+    print("Setting sample rate to %s"% (supported_samplerates[len(supported_samplerates)-1]))
+    ret = libairspyhf.airspyhf_set_samplerate(dev_p, supported_samplerates[len(supported_samplerates)-1])
 print(f"airspyhf_set_samplerate ret={ret}")
 
 ret = libairspyhf.airspyhf_set_hf_agc(dev_p, 1)
@@ -67,11 +77,17 @@ print(f"airspyhf_set_hf_agc ret={ret}")
 ret = libairspyhf.airspyhf_set_hf_agc_threshold(dev_p, 0)
 print(f"airspyhf_set_hf_agc_threshold ret={ret}")
 
+ret = libairspyhf.airspyhf_set_hf_lna(dev_p, 1)
+print(f"airspyhf_set_hf_lna ret={ret}")
+
 sample_count = 0
-wave_file = wave.open("record.wav","w")
+RECORD_FILE_NAME="record.wav"
+if args.outputfile != None:
+    RECORD_FILE_NAME = args.outputfile
+wave_file = wave.open(RECORD_FILE_NAME,"w")
 wave_file.setnchannels(2)
 wave_file.setsampwidth(4)
-wave_file.setframerate(supportet_samplerates[1])
+wave_file.setframerate(supported_samplerates[1])
 def read_samples(transfer):
     global sample_count
     global wave_file
@@ -98,11 +114,10 @@ read_samples_cb = airspyhf_sample_block_cb_fn(read_samples)
 ret = libairspyhf.airspyhf_start(dev_p, airspyhf_sample_block_cb_fn(read_samples), None)
 print(f"airspyhf_start ret={ret}")
 
-#ret = airspyhf.libairspyhf.py_cb_wrapper(dev_p)
-#print(f"airspyhf_start ret={ret}")
-
-
-ret = libairspyhf.airspyhf_set_freq(dev_p, 3865000)
+if args.frequency == None:
+    ret = libairspyhf.airspyhf_set_freq(dev_p, 3865000)
+else:
+    ret = libairspyhf.airspyhf_set_freq(dev_p, int(args.frequency))
 print(f"airspyhf_set_freq ret={ret}")
 
 count = 0
@@ -116,6 +131,7 @@ except:
 
 ret = libairspyhf.airspyhf_stop(dev_p)
 print(f"airspyhf_stop ret={ret}")
+time.sleep(1)
 
 #Not close for now
 ret = libairspyhf.close(dev_p)
