@@ -54,7 +54,7 @@ ret = libairspyhf.airspyhf_get_samplerates(dev_p,byref(nsrates),c_uint32(0))
 print("ret %d"%ret)
 print("sample rates %d"% nsrates.value)
 
-supported_samplerates = (c_uint32*4)(0)
+supported_samplerates = (c_uint32*nsrates.value)(0)
 ret = libairspyhf.airspyhf_get_samplerates(dev_p,supported_samplerates,nsrates)
 print("ret %d"%ret)
 print("Sample rate list:")
