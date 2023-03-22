@@ -108,7 +108,7 @@ def read_samples(transfer):
     return 0
 
 
-read_samples_cb = airspyhf_sample_block_cb_fn(read_samples)
+#read_samples_cb = airspyhf_sample_block_cb_fn(read_samples)
 
 
 ret = libairspyhf.airspyhf_start(dev_p, airspyhf_sample_block_cb_fn(read_samples), None)

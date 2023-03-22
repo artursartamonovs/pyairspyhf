@@ -53,11 +53,59 @@ class Station:
             self.duration = time_in_sec
 
         if "day" in config:
-            self.day = config["day"]
+            self.day = []
+            if config["day"] == "every":
+                self.day = [1,2,3,4,5,6,7]
+            else:
+                #Supported
+                # lowercase mon,tue,wen,thu,fri,sat,sun
+                days = config["day"].lower().split(",")
+                if "mon" in days:
+                    self.day.append(1)
+                if "tur" in days:
+                    self.day.append(2)
+                if "wen" in days:
+                    self.day.append(3)
+                if "thu" in days:
+                    self.day.append(4)
+                if "fri" in days:
+                    self.day.append(5)
+                if "sat" in days:
+                    self.day.append(6)
+                if "sun" in days:
+                    self.day.append(7)
 
         if "month" in config:
-            self.month = config["month"]
-
+            self.month = []
+            #Supported
+            #jan,feb,mar,apr,may,jun,jul,aug,sep,oct,nov,dec
+            month = config["month"].lower().split(",")
+            if "jan" in month:
+                self.month.append(1)
+            if "feb" in month:
+                self.month.append(2)
+            if "mar" in month:
+                self.month.append(3)
+            if "apr" in month:
+                self.month.append(4)
+            if "may" in month:
+                self.month.append(5)
+            if "jun" in month:
+                self.month.append(6)
+            if "jul" in month:
+                self.month.append(7)
+            if "aug" in month:
+                self.month.append(8)
+            if "sep" in month:
+                self.month.append(9)
+            if "oct" in month:
+                self.month.append(10)
+            if "nov" in month:
+                self.month.append(11)
+            if "dec" in month:
+                self.month.append(12)
+    def __str__(self):
+        return f"{self.name} freq:{self.frequency} time:{self.time} day:{self.day} month:{self.month}"
 
 class StationCollection:
     stations = []

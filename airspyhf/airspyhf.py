@@ -5,6 +5,7 @@ class AirSpyHF:
     dev_p = airspyhf_device_t_p(None)
     sample_rates = []
     initalized = False
+    cur_freq = 0
     def __init__(self,):
         #self.dev_p =  airspyhf_device_t_p(None)
         pass
@@ -54,6 +55,7 @@ class AirSpyHF:
 
     def set_samplerate(self, samplerate:int):
         if not self.initalized:
+            print("airspy not initalized")
             return -1
         if self.sample_rates == []:
             self.get_samplerates()
@@ -70,42 +72,66 @@ class AirSpyHF:
 
     def set_hf_agc(self,flag):
         if not self.initalized:
+            print("airspy not initalized")
             return -1
         ret = libairspyhf.airspyhf_set_hf_agc(self.dev_p, flag)
         return ret
 
     def set_hf_agc_threshold(self,flag):
         if not self.initalized:
+            print("airspy not initalized")
             return -1
         ret = libairspyhf.airspyhf_set_hf_agc_threshold(self.dev_p, flag)
         return ret
 
     def set_hf_att(self, value):
         if not self.initalized:
+            print("airspy not initalized")
             return -1
         ret = libairspyhf.airspyhf_set_hf_att(self.dev_p, value)
         return ret
 
     def set_hf_lna(self,flag):
         if not self.initalized:
+            print("airspy not initalized")
             return -1
         ret = libairspyhf.airspyhf_set_hf_lna(self.dev_p, flag)
         return ret
 
-    def start(self, read_samples):
+    def set_frequency(self,freq:int):
         if not self.initalized:
+            print("airspy not initalized")
             return -1
-        ret = libairspyhf.airspyhf_start(self.dev_p, airspyhf_sample_block_cb_fn(read_samples), None)
+        ret = libairspyhf.airspyhf_set_freq(self.dev_p, int(freq))
+        if ret != 0:
+            return -1
+        self.cur_freq = int(freq)
+        return 0
+
+    #def get_frequency(self,freq:int):
+    #    return self.cur_freq
+
+    def start(self, read_samples_cb):
+        if not self.initalized:
+            print("airspy not initalized")
+            return -1
+        #read_samples()
+        #ret = libairspyhf.airspyhf_start(self.dev_p, airspyhf_sample_block_cb_fn(read_samples), None)
+        ret = libairspyhf.airspyhf_start(self.dev_p, read_samples_cb, None)
         if ret != 0:
             print(f"airspyhf_start ret={ret}")
+            return -1
+        return 0
 
     def is_streaming(self):
         if not self.initalized:
+            print("airspy not initalized")
             return -1
         return libairspyhf.airspyhf_is_streaming(self.dev_p)
 
     def stop(self):
         if not self.initalized:
+            print("airspy not initalized")
             return -1
         ret = libairspyhf.airspyhf_stop(self.dev_p)
         if ret != 0:
@@ -115,6 +141,7 @@ class AirSpyHF:
 
     def close(self):
         if not self.initalized:
+            print("airspy not initalized")
             return -1
         ret = libairspyhf.close(self.dev_p)
         if ret != 0:
