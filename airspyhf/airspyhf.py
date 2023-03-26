@@ -98,7 +98,7 @@ class AirSpyHF:
         ret = libairspyhf.airspyhf_set_hf_lna(self.dev_p, flag)
         return ret
 
-    def set_frequency(self,freq:int):
+    def set_frequency(self, freq:int):
         if not self.initalized:
             print("airspy not initalized")
             return -1

@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os
 import sys
 import math
@@ -14,15 +16,15 @@ import pygame
 from pygame import gfxdraw
 
 CENTER_FREQ = 101000000
-SAMPLE_RATE = 196e3
+SAMPLE_RATE = 912e3
 SAMPLE_NUM = 2048
 
 SCREEN_X = 1025
 SCREEN_Y = 320
 
-MOVE_STEP = int(SAMPLE_RATE/2)
+MOVE_STEP = int(SAMPLE_RATE/8)
 
-sample_buf_lock = threading.Lock()
+sample_lock = threading.Lock()
 
 # init AIRSPY and if no then go out
 airspy = airspyhf.AirSpyHF()
@@ -31,7 +33,7 @@ if airspy.open(device_index=0) == -1:
     sys.exit(1)
 
 # config rtlsdr device
-airspy.set_samplerate(SAMPLE_RATE)
+airspy.set_samplerate(int(SAMPLE_RATE))
 airspy.set_frequency(CENTER_FREQ)
 airspy.set_hf_agc(1)
 airspy.set_hf_agc_threshold(0)
@@ -46,6 +48,8 @@ def iq_abs(c):
 def color_normalise(point):
     ret = (255, 0, 0)
     # blue
+    if point < 0.0:
+        point = 0.0
     if (point < 0.3):
         ret = (0, 0, int(point * 255 * 3.3))
     # yello
@@ -57,15 +61,35 @@ def color_normalise(point):
     else:
         # print "Color Error ", point
         pass
+    print(ret)
     return ret
 
 
 def color_mapping(x):
     "assumes -50 to 0 range, returns color"
-    r = int((x + 70) * 255 // 70)
-    r = max(0, r)
-    r = min(255, r)
-    return (r, r, 100)
+
+    #r = math.fabs(int(x))
+    #if r > 255:
+    #    r = 255
+    #print("+",r)
+    r = int((x + 120) * 255 // 30)
+    #r = max(0, r)
+    #r = min(255, r)
+    if r > 255:
+        r = 255
+    if r < 0:
+        r = 0
+    res = (r, r, r)
+    #avg3 = avg(r)/3
+    #if avg3 < 0.3:
+    #    res = (0, 0, int(avg3 * 255 * 3.3))
+
+    print(res)
+    return res
+    #r = 255-r
+    #print((int(r), int(r), 100))
+    #return (int(r), int(r), 100)
+
 
 
 # def draw_Hz( surface, x, y, hz ):
@@ -83,11 +107,8 @@ screen = pygame.display.set_mode((SCREEN_X, SCREEN_Y))
 sample_buffer = []
 def read_samples(transfer):
     global sample_buffer
+
     #print("callback")
-    #if sample_buf_lock.locked():
-    #    print("Buffer locked")
-    #    return 0
-    #sample_buf_lock.acquire()
     #print("Python call back")
     t = transfer.contents
     bytes_to_write = t.sample_count * 4 * 2
@@ -95,6 +116,8 @@ def read_samples(transfer):
     rx_buffer = t.samples
     #print(f"{bytes_to_write} bytes receieved")
     #sample_buffer.append(rx_buffer)
+    if len(sample_buffer) > SAMPLE_NUM:
+        return 0
     for i in range(0,t.sample_count):
         d_re = t.samples[i].re
         d_im = t.samples[i].im
@@ -104,22 +127,21 @@ def read_samples(transfer):
         #data = struct.pack("<f", d_im)  # FIX ?!
         #wave_file.writeframesraw(data)
     #print("End call back")
-    #sample_buf_lock.release()
     return 0
 
-def get_samples(num=1024):
+def get_samples():
     global sample_buffer
     buf_size = len(sample_buffer)
 
-    if buf_size < num:
+    if buf_size < SAMPLE_NUM:
         print("sample buffer small")
-        return [1]*num
-    print("getting stuff ", buf_size)
-    #while sample_buf_lock.locked():
-    #    time.sleep(0.1)
-    samples = sample_buffer[:int(buf_size/2)]
-    del sample_buffer[:int(buf_size/2)]
-    return samples
+        return []
+    #print("getting stuff ", buf_size)
+    while sample_lock.locked():
+        time.sleep(0.1)
+    samples = sample_buffer.copy()
+    sample_buffer = [] #!
+    return samples[:SAMPLE_NUM]
     #if len(samples) == num:
     #    sample_buffer = []
     #    return samples
@@ -155,19 +177,19 @@ while run and airspy.is_streaming():
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
                 print("Left")
-                #rtl.center_freq -= MOVE_STEP
+                # rtl.center_freq -= MOVE_STEP
                 airspy.set_frequency(airspy.cur_freq - MOVE_STEP)
-                #print("Center freq: ", rtl.center_freq, " Hz")
+                # print("Center freq: ", rtl.center_freq, " Hz")
             elif event.key == pygame.K_RIGHT:
                 print("Right")
-                #rtl.center_freq += MOVE_STEP
-                #print("Center freq: ", rtl.center_freq, " Hz")
+                # rtl.center_freq += MOVE_STEP
+                # print("Center freq: ", rtl.center_freq, " Hz")
                 airspy.set_frequency(airspy.cur_freq + MOVE_STEP)
 
     width = SCREEN_X
     height = SCREEN_Y
 
-    samples = get_samples(SAMPLE_NUM)
+    samples = get_samples()
     if samples == []:
         print("sample buffer is empty")
         time.sleep(1)
@@ -181,7 +203,7 @@ while run and airspy.is_streaming():
     spect_n = [(1.0 / (SAMPLE_NUM * len(spect))) * iq_abs(x) ** 2 for x in spect]
     spect_n = (10 * numpy.log10(spect_n)).tolist()
 
-    #print(spect_n)
+    print(spect_n)
 
     # total data size
     spect_len = len(spect_n)
@@ -201,17 +223,18 @@ while run and airspy.is_streaming():
             avg = -1000
 
         # print avg
-        # gfxdraw.pixel( screen, step, line, color_normalise((100-abs(avg))/10))
+        #gfxdraw.pixel( screen, step, line, color_normalise((100-abs(avg))/10))
+        #print(int(avg))
         gfxdraw.pixel(screen, step, line, color_mapping(int(avg)))
 
     # draw central freq
-    #font = pygame.font.Font(None, 20)
-    #text = font.render(str(rtl.center_freq / 1e6), 1, (200, 30, 30), (0, 0, 0))
-    #screen.blit(text, (SCREEN_X / 2, SCREEN_Y - 20))
-    #text = font.render(str((rtl.center_freq + SAMPLE_RATE / 2) / 1e6), 1, (200, 30, 30), (0, 0, 0))
-    #screen.blit(text, (SCREEN_X - 40, SCREEN_Y - 20))
-    #text = font.render(str((rtl.center_freq - SAMPLE_RATE / 2) / 1e6), 1, (200, 30, 30), (0, 0, 0))
-    #screen.blit(text, (20, SCREEN_Y - 20))
+    font = pygame.font.Font(None, 20)
+    text = font.render(str(airspy.cur_freq / 1e6), 1, (200, 30, 30), (0, 0, 0))
+    screen.blit(text, (SCREEN_X / 2, SCREEN_Y - 20))
+    text = font.render(str((airspy.cur_freq+ SAMPLE_RATE / 2) / 1e6), 1, (200, 30, 30), (0, 0, 0))
+    screen.blit(text, (SCREEN_X - 40, SCREEN_Y - 20))
+    text = font.render(str((airspy.cur_freq - SAMPLE_RATE / 2) / 1e6), 1, (200, 30, 30), (0, 0, 0))
+    screen.blit(text, (20, SCREEN_Y - 20))
 
     pygame.display.flip()
     line += 1
