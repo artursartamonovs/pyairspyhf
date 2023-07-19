@@ -55,7 +55,6 @@ udevadm control --reload-rules
 
 ## Supported and tested
 
-| --- | --- | --- | --- |
 | Python | libairspyhf | OS | Status |
 | --- |--- | --- | --- | 
 | 3.9, 3.10 | 1.7.1 | ArchLinux, Ubuntu 20.04 | Supported and tested |
