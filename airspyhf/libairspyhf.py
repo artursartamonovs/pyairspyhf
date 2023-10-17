@@ -1,7 +1,15 @@
 import sys
 import os
 from ctypes import *
+import ctypes
 from ctypes.util import find_library
+
+#main supproted version is 1.7.1 define versions of deriviatives of it
+#added support for 1.6.8 version most common version out there
+
+VERSION_171 = 1
+VERSION_168 = 0
+CURRENT_VERSION = VERSION_171 
 
 
 def load_libairspyhf():
@@ -12,8 +20,9 @@ def load_libairspyhf():
         driver_files = [local_path + '/libairspyhf.so' for local_path in ld_library_paths]
     else:
         driver_files = []
-    driver_files += ['libairspyhf.so']
-    driver_files += ['airspyhf.dll', 'libairspyhf.so', 'libairspyhf.dylib']
+
+    #driver_files += ['libairspyhf.0.dylib']
+    driver_files += ['airspyhf.dll', 'libairspyhf.so', 'libairspyhf.0.dylib']
     driver_files += ['..//airspyhf.dll', '..//libairspyhf.so']
     driver_files += [lambda : find_library('airspyhf'), lambda : find_library('libairspyhf')]
     dll = None
@@ -25,9 +34,10 @@ def load_libairspyhf():
             continue
         #print("Search for driver named %s"%(driver))
         try:
-            dll = CDLL(driver)
+            dll = CDLL(driver,use_errno=True)
             break
         except:
+            print("Cant load dll %s %d"%(driver, ctypes.get_errno()))
             pass
     else:
         raise ImportError('Error loading libairspyhf. Make sure libairspyhf '\
@@ -72,6 +82,16 @@ airspyhf_sample_block_cb_fn = PYFUNCTYPE(c_int, POINTER(airspyhf_transfer_t))
 f = libairspyhf.airspyhf_lib_version
 f.restype, f.argtypes = None, [POINTER(airspyhf_lib_version_t)]
 
+p = airspyhf_lib_version_t()
+libairspyhf.airspyhf_lib_version(byref(p))
+if (p.major_version==1) and (p.minor_version==6) and (p.revision==8):
+    CURRENT_VERSION = VERSION_168
+    print("Set libairspyhf version 1.6.8")
+else:
+    CURRENT_VERSION = VERSION_171  
+    print("Set libairspyhf version 1.7.1 (Actual version (%d,%d,%d)"%(p.major_version,p.minor_version,p.revision))
+
+
 #int ADDCALL airspyhf_list_devices(uint64_t *serials, int count);
 f = libairspyhf.airspyhf_list_devices
 f.restype, f.argtypes = c_int, [POINTER(c_uint64), c_int]
@@ -84,10 +104,11 @@ f.restype, f.argtypes = c_int, [POINTER(airspyhf_device_t_p)]
 f = libairspyhf.airspyhf_open_sn
 f.restype, f.argtypes = c_int, [POINTER(airspyhf_device_t_p), c_uint64]
 
-
-#int ADDCALL airspyhf_open_fd(airspyhf_device_t** device, int fd);
-f = libairspyhf.airspyhf_open_fd
-f.restype, f.argtypes = c_int, [POINTER(airspyhf_device_t_p), c_int]
+# start from 1.7.1
+if CURRENT_VERSION >= VERSION_171:
+    #int ADDCALL airspyhf_open_fd(airspyhf_device_t** device, int fd);
+    f = libairspyhf.airspyhf_open_fd
+    f.restype, f.argtypes = c_int, [POINTER(airspyhf_device_t_p), c_int]
 
 #int ADDCALL airspyhf_close(airspyhf_device_t* device);
 f = libairspyhf.airspyhf_close
@@ -96,7 +117,6 @@ f.restype, f.argtypes = c_int, [airspyhf_device_t_p]
 #nt ADDCALL airspyhf_get_output_size(airspyhf_device_t* device); /* Returns the number of IQ samples to expect in the callback */
 f = libairspyhf.airspyhf_get_output_size
 f.restype, f.argtypes = c_int, [airspyhf_device_t_p]
-
 
 #int ADDCALL airspyhf_start(airspyhf_device_t* device, airspyhf_sample_block_cb_fn callback, void* ctx);
 f = libairspyhf.airspyhf_start
@@ -118,9 +138,11 @@ f.restype, f.argtypes = c_int, [airspyhf_device_t_p]
 f = libairspyhf.airspyhf_set_freq
 f.restype, f.argtypes = c_int, [airspyhf_device_t_p, c_uint32]
 
-#int ADDCALL airspyhf_set_freq_double(airspyhf_device_t* device, const double freq_hz);
-f = libairspyhf.airspyhf_set_freq_double
-f.restype, f.argtypes = c_int, [airspyhf_device_t_p, c_double]
+# start from 1.7.1
+if CURRENT_VERSION >= VERSION_171:
+    #int ADDCALL airspyhf_set_freq_double(airspyhf_device_t* device, const double freq_hz);
+    f = libairspyhf.airspyhf_set_freq_double
+    f.restype, f.argtypes = c_int, [airspyhf_device_t_p, c_double]
 
 #int ADDCALL airspyhf_set_lib_dsp(airspyhf_device_t* device, const uint8_t flag); /* Enables/Disables the IQ Correction, IF shift and Fine Tuning. */
 f = libairspyhf.airspyhf_set_lib_dsp
@@ -142,13 +164,17 @@ f.restype, f.argtypes = c_int, [airspyhf_device_t_p, POINTER(c_int32)]
 f = libairspyhf.airspyhf_set_calibration
 f.restype, f.argtypes = c_int, [airspyhf_device_t_p, c_int32]
 
-#int ADDCALL airspyhf_get_vctcxo_calibration(airspyhf_device_t* device, uint16_t* vc);
-f = libairspyhf.airspyhf_get_vctcxo_calibration
-f.restype, f.argtypes = c_int, [airspyhf_device_t_p, POINTER(c_uint16)]
+# start from 1.7.1
+if CURRENT_VERSION >= VERSION_171:
+    #int ADDCALL airspyhf_get_vctcxo_calibration(airspyhf_device_t* device, uint16_t* vc);
+    f = libairspyhf.airspyhf_get_vctcxo_calibration
+    f.restype, f.argtypes = c_int, [airspyhf_device_t_p, POINTER(c_uint16)]
 
-#int ADDCALL airspyhf_set_vctcxo_calibration(airspyhf_device_t* device, uint16_t vc);
-f = libairspyhf.airspyhf_set_vctcxo_calibration
-f.restype, f.argtypes = c_int, [airspyhf_device_t_p, c_uint16]
+# start from 1.7.1
+if CURRENT_VERSION >= VERSION_171:
+    #int ADDCALL airspyhf_set_vctcxo_calibration(airspyhf_device_t* device, uint16_t vc);
+    f = libairspyhf.airspyhf_set_vctcxo_calibration
+    f.restype, f.argtypes = c_int, [airspyhf_device_t_p, c_uint16]
 
 #int ADDCALL airspyhf_set_optimal_iq_correction_point(airspyhf_device_t* device, float w);
 f = libairspyhf.airspyhf_set_optimal_iq_correction_point
