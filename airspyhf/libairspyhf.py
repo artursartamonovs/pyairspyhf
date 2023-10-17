@@ -89,7 +89,7 @@ if (p.major_version==1) and (p.minor_version==6) and (p.revision==8):
     print("Set libairspyhf version 1.6.8")
 else:
     CURRENT_VERSION = VERSION_171  
-    print("Set libairspyhf version 1.7.1 (Actual version (%d,%d,%d)"%(p.major_version,p.minor_version,p.revision))
+    print("Set libairspyhf version 1.7.1 (Actual version (%d.%d.%d)"%(p.major_version,p.minor_version,p.revision))
 
 
 #int ADDCALL airspyhf_list_devices(uint64_t *serials, int count);
